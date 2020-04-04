@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using cw3_apbd.DTOs.Request;
+using cw3_apbd.DTOs.Responde;
 using System.Data;
 
 namespace cw3_apbd.Services 
@@ -13,10 +14,11 @@ namespace cw3_apbd.Services
     {
         private const string connectParametr = "Data Source=db-mssql;Initial Catalog=s19314;Integrated Security=True ";
         public string writeStudentIntoSemester(EnrollStudentRequest request) {
-
              string semester = "",
                     numberIdEnrollment = "", 
-                    idStudyDlaException = "";
+                    idStudyDlaException = "",
+                    responde = "ObjEnrollment\n";
+            
             using (SqlConnection connection = new SqlConnection(connectParametr))
             using (SqlCommand command = new SqlCommand())
             {
@@ -117,6 +119,19 @@ namespace cw3_apbd.Services
                     command.ExecuteNonQuery();
                     // Не нужно
                     // if (countRowAffected <= 0) throw new Exception(); // SqlException
+                    dataReader.Close();
+
+                    command.CommandText = $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
+                                           " FROM Enrollment WHERE IdEnrollment = @IdEnrollment ;";
+                    command.Parameters.AddWithValue("IdEnrollment", idEnrollment);
+                    dataReader = command.ExecuteReader();
+                    dataReader.Read();
+
+                    responde = responde + 
+                               "IdEnrollment: " + dataReader["IdEnrollment"] + "\n" +
+                               "Semester: " + dataReader["Semester"] + "\n" +
+                               "IdStudy: " + dataReader["IdStudy"] + "\n" +
+                               "StartDate: " + dataReader["StartDate"] + "\n";
 
                     dataReader.Close();
                     transaction.Commit();
@@ -126,12 +141,12 @@ namespace cw3_apbd.Services
                 {
                     dataReader.Close();
                     transaction.Rollback();
-                    return "SqlException \n "; 
-                    /*        
+                    return "SqlException \n " //; 
+                    ///*        
                     + "StackTrace " + sqlExc.StackTrace + "\n"
                         + "NumberIdEnrollment " + numberIdEnrollment +
                         " idStudyDlaException " + idStudyDlaException;
-                        */
+                        // */
                 } catch (Exception myExc) {
                     dataReader.Close();
                     transaction.Rollback();
@@ -147,48 +162,158 @@ namespace cw3_apbd.Services
                 
             // command.CommandText = 
         }
-            
-
-                // try{} catch(){} - rollback 
 
 
-           
-            return "ObjEnrollment\n" + 
-                   "Semester: 1";
+            // try{} catch(){} - rollback 
+
+
+
+            return responde;
+                // "ObjEnrollment\n" + 
+                // "Semester: 1";
         }
 
-        public void dodanieKoncowkeDoPromocjiStudentow() { 
-        
-        }
+        public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request) {
+            string response = "";
+            using (SqlConnection connection = new SqlConnection(connectParametr))
+            using (SqlCommand command = new SqlCommand()) {
+                SqlDataReader dataReader = null;
+                SqlTransaction transaction = null;
+                try
+                {
+                    command.Connection = connection;
+                    connection.Open();
+    
+                    transaction = connection.BeginTransaction();
+                    command.Transaction = transaction;
 
-        public Boolean isExistStudies(string studiesName)
-        {
-            string request = $"SELECT studies.name FROM Studies WHERE {studiesName} = studies.Name;";
-            var dataReader = sendRequestGetSqlDataReader(request);
-            string result = "";
-            while (dataReader.Read()) {
-                result = dataReader["Name"].ToString();
+                    command.CommandText = $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
+                                            " FROM Enrollment WHERE Semester = @Semester AND " + 
+                                            " IdStudy = (SELECT IdStudy FROM Studies WHERE Name = @Studies );";
+                        /*
+                        $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
+                              " FROM Enrollment WHERE IdStudy = @IdStudy AND Semester = @Semester ; ";
+                        */
+                    command.Parameters.AddWithValue("Studies", request.Studies);
+                    command.Parameters.AddWithValue("Semester", request.Semester);
+
+                    
+                     dataReader = command.ExecuteReader();
+                    if (!dataReader.Read()) throw  new Exception("Nie ma takiego rekordu");
+                    // bEGIN TRANSACTION
+                    dataReader.Close();                
+                    
+                    string createOrReplaceProcedure =
+                        " IF( SELECT object_id('promocjaStudentaNaNastepnySemestr') ) IS NOT NULL " +
+                        " BEGIN " + 
+                        " DROP PROCEDURE promocjaStudentaNaNastepnySemestr; " + 
+                        " END; " +
+                        " GO " + 
+                        " CREATE PROCEDURE promocjaStudentaNaNastepnySemestr  @Studies Varchar(20), @Semester INT " +
+                        " AS " + 
+                        " BEGIN " + 
+                        " DECLARE @v_idEnrollment_current_Students INT, " +
+		                " @v_idEnrollment_new_Students INT, " +
+                        " @v_idStudy INT; " +
+
+                        " SET @v_idStudy = (SELECT IdStudy " +
+                                          " FROM Studies " + 
+                                          " WHERE Name = @Studies); " + 
+
+                        " SET @v_idEnrollment_current_Students = " + 
+                                         " (SELECT IdEnrollment--, Semester, IdStudy, StartDate " +
+                                           " FROM Enrollment " +
+                                           " WHERE Semester = @Semester AND " +
+                                                 " IdStudy = @v_idStudy " +
+						                   " ); " +
+                        " SET @v_idEnrollment_new_Students = (SELECT IdEnrollment " +
+                                           " FROM Enrollment " +
+                                           " WHERE Semester > 1 AND " +
+                                                 " IdStudy = @v_idStudy " +
+						" ); " +
+                    
+                        " IF(@v_idEnrollment_new_Students IS NULL) " + 
+                        " BEGIN " +
+                        "   SET @v_idEnrollment_new_Students = (SELECT(1 + MAX(IdEnrollment))  FROM Enrollment); " +
+                        "   INSERT INTO Enrollment(IdEnrollment, Semester, IdStudy, StartDate) " +
+                        "   VALUES(@v_idEnrollment_new_Students, (1 + @Semester), @v_idStudy, GETDATE()); " +
+                        " END " +
+                        " ELSE " +
+                        " BEGIN " +
+                        "    UPDATE Enrollment " +
+                        "    SET Semester = (1 + @Semester) " +
+                        "    WHERE IdEnrollment = @v_idEnrollment_new_Students " +
+                        " END; " + 
+
+                        " UPDATE Student " + 
+                        " SET IdEnrollment = @v_idEnrollment_new_Students " + 
+                        " WHERE IdEnrollment = @v_idEnrollment_current_Students; " +
+                        " RETURN @v_idEnrollment_new_Students; " +
+                        " END; " + 
+                        " GO";
+
+                    command.CommandText = createOrReplaceProcedure;
+                    command.ExecuteNonQuery();
+                    // Tutaj jest problem 
+                    // dataReader = command.ExecuteReader();
+                    // dataReader.Read();
+
+                    string executeProcedure =  " DECLARE @return_status int;  " + 
+                                                " EXEC @return_status = promocjaStudentaNaNastepnySemestr @StudiesName, @CurrentSemester; " + 
+                                                " SELECT 'IdEnrollment ' = @return_status; " +
+                                                " GO ";
+                    command.CommandText = executeProcedure;
+                    command.Parameters.AddWithValue("StudiesName", request.Studies);
+                    command.Parameters.AddWithValue("CurrentSemester", request.Semester);
+                    
+                    dataReader = command.ExecuteReader();
+                    dataReader.Read();
+                    string respondeIdEnrollment = dataReader.GetValue(0).ToString();
+                    int v_IdEnrollment = Convert.ToInt32(respondeIdEnrollment.Split(" ")[1]);
+                    dataReader.Close();
+
+                    string selectObjEnrollment = " SELECT IdEnrollment, Semester, IdStudy, StartDate " +
+                                                 " FROM Enrollment WHERE IdEnrollment = @v_IdEnrollment ; ";
+
+                    command.CommandText = selectObjEnrollment;
+                    command.Parameters.AddWithValue("v_IdEnrollment", v_IdEnrollment);
+                    dataReader = command.ExecuteReader();
+                    response = "ObjEnrollment \n" + 
+                                "IdEnrollment: " + (dataReader["IdEnrollment"].ToString()) +  "\n" +
+                                "Semester: " + (dataReader["Semester"].ToString()) + "\n" +
+                                "IdStudy: " + (dataReader["IdStudy"].ToString()) + "\n" +
+                                "StartDate: " + (dataReader["StartDate"].ToString()) + "\n" ;
+
+
+                    // End transaction
+                    dataReader.Close();
+                    transaction.Commit();
+                }
+                catch (SqlException sqlExc)
+                {
+                    dataReader.Close();
+                    transaction.Rollback();
+                    return "SqlException \n " //; 
+                    ///*        
+                    + "StackTrace " + sqlExc.StackTrace;
+                    // */
+                }
+                catch (Exception myExc)
+                {
+                    dataReader.Close();
+                    transaction.Rollback();
+
+                    return "Exception\n" +
+                         myExc.Message +
+                    "\nStackTrace\n " + myExc.StackTrace + "\n";
+                        // + "NumberIdEnrollment " + numberIdEnrollment +
+                        // " idStudyDlaException " + idStudyDlaException; //.ToString();
+                    
+                }
             }
-
-            result.Trim();
-            // Nie znam na 100 procent czy w momencie pustej odpowiedzi od Bazy Danych
-            // Ona będzie na 100% pust bez różch tabulacij i t.d.
-            if (result.Equals(""))
-                return false;
-            return true;
-        
+                return response + "\n ZrobionnoPPPPp";   
         }
 
-        private  SqlDataReader sendRequestGetSqlDataReader(string request) {
-            // if(request.Equals("")) return "";
-            using (var connection = new SqlConnection(connectParametr))
-            using (var command = new SqlCommand()) {
-                command.Connection = connection;
-                command.CommandText = request;
-                return command.ExecuteReader();
-            }
-        
-        }
 
 
 

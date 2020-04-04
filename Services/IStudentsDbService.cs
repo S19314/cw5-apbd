@@ -11,8 +11,7 @@ namespace cw3_apbd.Services
     {
         public string writeStudentIntoSemester(EnrollStudentRequest request);
 
-        public void dodanieKoncowkeDoPromocjiStudentow();
+        public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request);
 
-        public Boolean isExistStudies(string studiesName);
     }
 }

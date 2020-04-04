@@ -24,50 +24,43 @@ namespace cw3_apbd.Controllers
         public IActionResult addStudentIntoSemester(EnrollStudentRequest request) {
             string responde = _dbStudentServices.writeStudentIntoSemester(request);
             if (responde.StartsWith("ObjEnrollment")) {
-                // создание Enrolment
-                string[] respondeParametrs = responde.Split("\n");
-                string semester = "";
-                for (int i = 0; i < respondeParametrs.Length; i++) {
-                    if (respondeParametrs[i].StartsWith("Semester:"))
-                    {
-                        semester = respondeParametrs[i].Split(" ")[1];
-                        break;
-                    }
-                }
-                var enrollmentResponde = new EnrollStudentResponde();
-                enrollmentResponde.Semester = Convert.ToInt32(semester);
-                
+                var enrollmentResponde = convertParametrsIntoEnrollStudentResponde(responde); 
                 return StatusCode(201, enrollmentResponde);
-                // return Created(new (201));
+                
             }
-            //if (responde.Equals("Exception")) 
+
                 return BadRequest(responde);
+        }
 
+        [HttpPost("promotions")]
+        public IActionResult promocjaStudentaNaNowySemestr(EnrollSemesterRequest request) {
+            string responde = _dbStudentServices.promocjaStudentaNaNowySemestr(request);
             
-            // Null verification 
-            /*
-            if( !(
-                student.BirthDate.Equals("") &&
-                student.FirstName.Equals("") &&
-                student.LastName.Equals("") &&
-                student.IdEnrollment.Equals("") &&
-                student.IndexNumber.Equals("") 
-                )
-            ) return BadRequest("Nie wszystki dane są zapisane");
-            */
+            if (responde.StartsWith("ObjEnrollment"))
+            {
+                var enrollmentResponde = convertParametrsIntoEnrollStudentResponde(responde);
+                return StatusCode(201, enrollmentResponde);
+            }
 
-            // if(_dbStudentServices.isExistStudies(student.))
-            // return Ok();
-
-            // return Ok("Работает");
+            return NotFound(responde);
+            
         }
 
 
-        /*
-        public IActionResult Index(
-        {
-            return View();
+        private EnrollStudentResponde convertParametrsIntoEnrollStudentResponde(string responde) {
+            string[] parametrs = responde.Split("\n");
+            string semester = "";
+
+            var enrollmentResponde = new EnrollStudentResponde();
+            enrollmentResponde.IdEnrollment = Convert.ToInt32(parametrs[1].Split(" ")[1]);
+            enrollmentResponde.Semester = Convert.ToInt32(parametrs[2].Split(" ")[1]);
+            enrollmentResponde.IdStudy = Convert.ToInt32(parametrs[3].Split(" ")[1]);
+            enrollmentResponde.StartDate = parametrs[4].Split(" ")[1];
+
+
+            return enrollmentResponde;
         }
-        */
+
+
     }
 }
