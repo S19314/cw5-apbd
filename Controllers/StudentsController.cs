@@ -63,7 +63,7 @@ namespace cw3_apbd.Controllers
                 command.CommandText = $"SELECT * FROM Student WHERE student.IndexNumber = @id;";
                 command.Parameters.AddWithValue("id",id);
                 connection.Open();
-                var dataReader = command.ExecuteReader();
+                    var dataReader = command.ExecuteReader();
                 while (dataReader.Read()) {
                     var student = new Student();
                     student.FirstName = dataReader["FirstName"].ToString();

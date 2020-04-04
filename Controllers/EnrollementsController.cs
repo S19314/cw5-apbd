@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using cw3_apbd.Services;
 using cw3_apbd.Models;
 using cw3_apbd.DTOs.Request;
+using cw3_apbd.DTOs.Responde;
 
 namespace cw3_apbd.Controllers
 {
@@ -22,10 +23,26 @@ namespace cw3_apbd.Controllers
         [HttpPost]
         public IActionResult addStudentIntoSemester(EnrollStudentRequest request) {
             string responde = _dbStudentServices.writeStudentIntoSemester(request);
-            // Można stworzyć "switch", który w zależości od zwracanego metodą "writeStudentIntoSemester " parametru 
-            //          będzie zwracać BadRequest() z odpowiednim opisem.
-            if (responde.Equals("")) return BadRequest("In addStudentIntoSemester");
-                return Ok("In addStudentIntoSemester");
+            if (responde.StartsWith("ObjEnrollment")) {
+                // создание Enrolment
+                string[] respondeParametrs = responde.Split("\n");
+                string semester = "";
+                for (int i = 0; i < respondeParametrs.Length; i++) {
+                    if (respondeParametrs[i].StartsWith("Semester:"))
+                    {
+                        semester = respondeParametrs[i].Split(" ")[1];
+                        break;
+                    }
+                }
+                var enrollmentResponde = new EnrollStudentResponde();
+                enrollmentResponde.Semester = Convert.ToInt32(semester);
+                
+                return StatusCode(201, enrollmentResponde);
+                // return Created(new (201));
+            }
+            //if (responde.Equals("Exception")) 
+                return BadRequest(responde);
+
             
             // Null verification 
             /*

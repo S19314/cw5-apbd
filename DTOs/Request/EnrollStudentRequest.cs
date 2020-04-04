@@ -13,7 +13,7 @@ namespace cw3_apbd.DTOs.Request
 
         [Required(ErrorMessage = "BirthDate nie muszę być pusty")]
         public string BirthDate { get; set; }
-        
+        // public DateTime BirthDate { get; set; }
         [Required(ErrorMessage = "Studies nie muszę być pusty")]
         public string Studies { get; set; }
 
