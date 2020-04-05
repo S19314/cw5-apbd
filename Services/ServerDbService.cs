@@ -174,7 +174,8 @@ namespace cw3_apbd.Services
         }
 
         public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request) {
-            string response = "";
+            string response = "",
+                   infoForException = "";
             using (SqlConnection connection = new SqlConnection(connectParametr))
             using (SqlCommand command = new SqlCommand()) {
                 SqlDataReader dataReader = null;
@@ -196,19 +197,33 @@ namespace cw3_apbd.Services
                         */
                     command.Parameters.AddWithValue("Studies", request.Studies);
                     command.Parameters.AddWithValue("Semester", request.Semester);
-
+                    
                     
                      dataReader = command.ExecuteReader();
                     if (!dataReader.Read()) throw  new Exception("Nie ma takiego rekordu");
                     // bEGIN TRANSACTION
-                    dataReader.Close();                
-                    
-                    string createOrReplaceProcedure =
+                    dataReader.Close();
+                    ///*
+                    /*
+                    string deleteProcedureIfExist =
                         " IF( SELECT object_id('promocjaStudentaNaNastepnySemestr') ) IS NOT NULL " +
-                        " BEGIN " + 
-                        " DROP PROCEDURE promocjaStudentaNaNastepnySemestr; " + 
+                        " BEGIN " +
+                        " DROP PROCEDURE promocjaStudentaNaNastepnySemestr; " +
                         " END; " +
-                        " GO " + 
+                        "  ";
+                    */
+                    // command.CommandText = deleteProcedureIfExist;
+                    // command.ExecuteNonQuery();
+                    // dataReader.Close();
+                    //*/
+                    // Tutaj jest problem 
+                    // dataReader = command.ExecuteReader();
+                    // dataReader.Read();
+
+
+
+                    /*
+                    string createProcedure = 
                         " CREATE PROCEDURE promocjaStudentaNaNastepnySemestr  @Studies Varchar(20), @Semester INT " +
                         " AS " + 
                         " BEGIN " + 
@@ -250,26 +265,35 @@ namespace cw3_apbd.Services
                         " WHERE IdEnrollment = @v_idEnrollment_current_Students; " +
                         " RETURN @v_idEnrollment_new_Students; " +
                         " END; " + 
-                        " GO";
+                        " ";
+                   */
+                    // command.CommandText = createProcedure;
+                    // dataReader = 
+                   //     command.BeginExecuteReader();  
+                    // command.ExecuteScalar();
+                    // dataReader.Close();
 
-                    command.CommandText = createOrReplaceProcedure;
-                    command.ExecuteNonQuery();
-                    // Tutaj jest problem 
-                    // dataReader = command.ExecuteReader();
-                    // dataReader.Read();
 
-                    string executeProcedure =  " DECLARE @return_status int;  " + 
+                    string executeProcedure = $" DECLARE @return_status int;  " + 
                                                 " EXEC @return_status = promocjaStudentaNaNastepnySemestr @StudiesName, @CurrentSemester; " + 
                                                 " SELECT 'IdEnrollment ' = @return_status; " +
-                                                " GO ";
+                                                "  ";
+                        
                     command.CommandText = executeProcedure;
                     command.Parameters.AddWithValue("StudiesName", request.Studies);
                     command.Parameters.AddWithValue("CurrentSemester", request.Semester);
-                    
-                    dataReader = command.ExecuteReader();
+                    /// ExecuteScalar() ?
+                    // dataReader = command.ExecuteReader();
+                    // dataReader.Read();
+                    // string respondeIdEnrollment = command.ExecuteScalar().ToString(); // dataReader.GetValue(0).ToString();
+                    dataReader = command.ExecuteReader(); // Convert.ToInt32(respondeIdEnrollment.Split(" ")[1]);
+                                                          //infoForException = infoForException + "ResultProcedure " + resultProcedure;
+
+                    //int v_IdEnrollment = Convert.ToInt32(resultProcedure.ToString());
                     dataReader.Read();
-                    string respondeIdEnrollment = dataReader.GetValue(0).ToString();
-                    int v_IdEnrollment = Convert.ToInt32(respondeIdEnrollment.Split(" ")[1]);
+                    string result = dataReader.GetValue(0).ToString();
+                    int v_IdEnrollment = Convert.ToInt32(result);
+                    infoForException = infoForException + "ExcReader " + result;
                     dataReader.Close();
 
                     string selectObjEnrollment = " SELECT IdEnrollment, Semester, IdStudy, StartDate " +
@@ -278,6 +302,7 @@ namespace cw3_apbd.Services
                     command.CommandText = selectObjEnrollment;
                     command.Parameters.AddWithValue("v_IdEnrollment", v_IdEnrollment);
                     dataReader = command.ExecuteReader();
+                    dataReader.Read();
                     response = "ObjEnrollment \n" + 
                                 "IdEnrollment: " + (dataReader["IdEnrollment"].ToString()) +  "\n" +
                                 "Semester: " + (dataReader["Semester"].ToString()) + "\n" +
@@ -295,7 +320,9 @@ namespace cw3_apbd.Services
                     transaction.Rollback();
                     return "SqlException \n " //; 
                     ///*        
-                    + "StackTrace " + sqlExc.StackTrace;
+                    + "StackTrace " + sqlExc.StackTrace
+                    + "_____\n" + infoForException
+                    ;
                     // */
                 }
                 catch (Exception myExc)
@@ -305,7 +332,9 @@ namespace cw3_apbd.Services
 
                     return "Exception\n" +
                          myExc.Message +
-                    "\nStackTrace\n " + myExc.StackTrace + "\n";
+                    "\nStackTrace\n " + myExc.StackTrace + "\n"
+                    + "_____\n" + infoForException
+                     ;
                         // + "NumberIdEnrollment " + numberIdEnrollment +
                         // " idStudyDlaException " + idStudyDlaException; //.ToString();
                     
