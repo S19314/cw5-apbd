@@ -13,5 +13,6 @@ namespace cw3_apbd.Services
 
         public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request);
 
+        public Boolean isExistStudies(string indexNumber);
     }
 }
