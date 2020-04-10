@@ -15,6 +15,7 @@ using cw3_apbd.Services;
 using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Text;
+using cw3_apbd.Middlewares;
 
 namespace cw3_apbd
 {
@@ -42,6 +43,9 @@ namespace cw3_apbd
             {
                 app.UseDeveloperExceptionPage();
             }
+
+            app.UseMiddleware<LoggingMiddleware>();
+
 
             app.Use(async (context, next) =>
             {
