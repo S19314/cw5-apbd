@@ -13,6 +13,7 @@ using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.Configuration;
+using cw3_apbd.PasswordManager;
 
 namespace cw3_apbd.Controllers
 {
@@ -72,9 +73,22 @@ namespace cw3_apbd.Controllers
 
 
         [AllowAnonymous]
+        [HttpPost("sing-up")]
+        public IActionResult createAccount(RequestAccount account) {
+            if (_dbStudentServices.addAccount(account)) return Ok("Account was added");
+            return NotFound("Wprowadzonno nie prawidlowy typ dannych    ");
+        }
+
+
+
+
+
+
+        [AllowAnonymous]
         [HttpPost("login")]
-        
         public IActionResult Login(LoginRequestDto loginRequestDto ) {
+             // PasswordHashing.Create();
+            // PasswordHashing.PasswordHashing.
             if(!_dbStudentServices.isPassedAuthorization(loginRequestDto.Login, loginRequestDto.Haslo))
                 return NotFound("Your username or password is incorrect. Please try again");
             var claims = new[]

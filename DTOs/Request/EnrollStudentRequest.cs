@@ -1,5 +1,5 @@
 ﻿using System;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;    
 namespace cw3_apbd.DTOs.Request
 {
     public class EnrollStudentRequest

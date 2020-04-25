@@ -3,7 +3,7 @@ using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-
+using cw3_apbd.PasswordManager;
 using cw3_apbd.DTOs.Request;
 using cw3_apbd.DTOs.Responde;
 using System.Data;
@@ -268,6 +268,38 @@ namespace cw3_apbd.Services
 
         public bool isPassedAuthorization(string login, string password)
         {
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
+                using (SqlCommand sqlCommand = new SqlCommand())
+                {
+                    sqlCommand.Connection = sqlConnection;
+                    sqlConnection.Open();
+                    String request = $"SELECT password, salt FROM Student WHERE IndexNumber = @login; "; // AND PASSWORD = @password";
+                    sqlCommand.CommandText = request;
+                    sqlCommand.Parameters.AddWithValue("login", login);
+
+
+                    var dataReader = sqlCommand.ExecuteReader();
+                     if (!dataReader.Read()) return false;
+                    string passwordInDataBase = dataReader["Password"].ToString();
+                    string salt = dataReader["Salt"].ToString();
+
+                    password =  PasswordHashing.Create(password, salt);
+                    return password.Equals(passwordInDataBase);
+
+                    /// sqlCommand.Parameters.AddWithValue("password", password);
+
+                }
+            }
+            catch (SqlException sqlException) {
+                return false;
+            }
+        }
+
+        /* Version witout password hashing 
+            public bool isPassedAuthorization(string login, string password)
+        {
             using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
             using (SqlCommand sqlCommand = new SqlCommand()) {
                 sqlCommand.Connection = sqlConnection;
@@ -282,6 +314,9 @@ namespace cw3_apbd.Services
             }
                 return false;
         }
+             
+        */
+
 
         public bool addRefreshToken(string refreshToken)
         { 
@@ -346,6 +381,39 @@ namespace cw3_apbd.Services
             }
             return true;
         }
+    
+    public bool addAccount(RequestAccount account) {
+        // try
+        // {
+            using (SqlConnection connection = new SqlConnection(connectParametr))
+            using (SqlCommand command = new SqlCommand()) {
+                    command.Connection = connection;
+                    connection.Open();
+
+                    string salt = PasswordHashing.CreateSalt();
+                    string hashingPassword = PasswordHashing.Create(account.Password, salt);
+                    // salt and password
+                    command.CommandText = @" INSERT INTO Student (IndexNumber, FirstName, LastName, BirthDate, IdEnrollment, Password, Salt) " +
+                                            " VALUES(@indexNumber, @firstName, @secondName, @birthDate, @idEnrollment, @hashingPassword, @salt); ";
+                    command.Parameters.AddWithValue("indexNumber", account.Student.IndexNumber);
+                    command.Parameters.AddWithValue("firstName", account.Student.FirstName);
+                    command.Parameters.AddWithValue("secondName", account.Student.LastName);
+                    command.Parameters.AddWithValue("birthDate", account.Student.BirthDate);
+                    command.Parameters.AddWithValue("idEnrollment", account.Student.IdEnrollment);
+                    command.Parameters.AddWithValue("hashingPassword", hashingPassword);
+                    command.Parameters.AddWithValue("salt", salt);
+                    if (command.ExecuteNonQuery() == 0) return false;
+                    return true;
+                }
+
+        // }
+     //   catch (SqlException sqlException) {
+         //   return false;
+       // }
+
+
+        //return true;
     }
 
     }
+}

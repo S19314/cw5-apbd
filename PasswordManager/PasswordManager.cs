@@ -6,13 +6,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace cw3_apbd.PasswordHashing
+namespace cw3_apbd.PasswordManager
 {
-    public class PasswordHashing 
+    public class PasswordHashing
     {
-
-
-        public static string Create(string value, string salt)
+       public static string Create(string value, string salt)
         {
             var valueBytes = KeyDerivation.Pbkdf2(
                                 password: value,
@@ -28,9 +26,10 @@ namespace cw3_apbd.PasswordHashing
             => Create(value, salt) == hash;
 
 
-            public static string CreateSalt() {
+        public static string CreateSalt()
+        {
             byte[] randomBytes = new byte[128 / 8];
-            using (var generator = RandomNumberGenerator.Create()) 
+            using (var generator = RandomNumberGenerator.Create())
             {
                 generator.GetBytes(randomBytes);
                 return Convert.ToBase64String(randomBytes);

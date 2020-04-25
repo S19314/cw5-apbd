@@ -22,5 +22,7 @@ namespace cw3_apbd.Services
         public bool deleteRefreshToken(string refreshToken);
 
         public bool updateRefreshToken(string oldRefreshToken, string newRefreshToken);
+
+        public bool addAccount(RequestAccount account);
     }
 }
