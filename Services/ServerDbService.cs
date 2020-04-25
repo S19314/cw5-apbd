@@ -11,8 +11,9 @@ using System.Data;
 namespace cw3_apbd.Services 
 {
     public class ServerDbService : IStudentsDbService
-    {
+    {// Не мешало бы через IConfigure хранить информацию об connectParametr
         private const string connectParametr = "Data Source=db-mssql;Initial Catalog=s19314;Integrated Security=True ";
+      
         public string writeStudentIntoSemester(EnrollStudentRequest request)
         {
             string semester = "",
@@ -33,23 +34,19 @@ namespace cw3_apbd.Services
 
                     transaction = connection.BeginTransaction();
                     command.Transaction = transaction;
-                    // Падазрение, что дело всё в этих одиноких скобках и как следствие, при добавлении параметра 
-                    // программа проаускает слово studies и выбивает null
-                    // Хотя нелогично, ибо exception никакого нет. Просто считывает и имеет пустой результат.
-                    // DataReader с пустым резултаттом, но не null в DataReader
-
+                    
                     command.CommandText = $"SELECT IdStudy FROM Studies WHERE name = @studies ;";
-                    // command.CommandText = $"SELECT IdStudy FROM Studies WHERE name = 'IT' ;";
+                    
                     command.Parameters.AddWithValue("studies", request.Studies);
-                    // name = '@studies'  траблы с этой херней
+                    
 
                     dataReader = command.ExecuteReader();
 
                     if (!dataReader.Read()) throw new Exception("W tabeli \"Studies\" nie ma potrzebnego rekorku z atrybutem \"name\" = " + request.Studies
-                                                              + "\n Command " + command.CommandText); // SqlException...
+                                                              + "\n Command " + command.CommandText); 
 
                     idStudyDlaException = dataReader["IdStudy"].ToString();
-                    int idStudies = Convert.ToInt32(idStudyDlaException); // Convert.ToInt32(dataReader["IdStudy"].ToString());
+                    int idStudies = Convert.ToInt32(idStudyDlaException); 
                     dataReader.Close();
 
                     command.CommandText = $"SELECT IdEnrollment	" +
@@ -66,25 +63,19 @@ namespace cw3_apbd.Services
                     ;
                     command.Parameters.AddWithValue("IdStudies1", idStudies);
                     command.Parameters.AddWithValue("IdStudies2", idStudies);
-                    // dataReader.Close();
-                    /* ТУТ */
+                    
                     dataReader = command.ExecuteReader();
                     int idEnrollment;
                     if (!dataReader.Read())
                     {
                         dataReader.Close();
                         command.CommandText = "SELECT (1 + ISNULL(Max(IdEnrollment), 0))  FROM Enrollment;";
-                        // var dataReaderMaxIdEnrollment = command.ExecuteReader();
-                        // Тут. Тоже проверка не нужна. 
-                        // if (! 
-                        //dataReaderMaxIdEnrollment.Read();
-                        // ) throw new Exception(); // SqlExccepton
+                        
                         dataReader = command.ExecuteReader();
                         dataReader.Read();
                         numberIdEnrollment = dataReader.GetValue(0).ToString();
                         idEnrollment = Convert.ToInt32(numberIdEnrollment);
 
-                        //idEnrollment =  Convert.ToInt32(dataReader[0].ToString());
                         dataReader.Close();
                         command.CommandText = $"INSERT INTO Enrollment(IdEnrollment, Semester, IdStudy, StartDate)" +
                                                 "VALUES(@IdEnrollment, 1, @IdStudies, GETDATE());"
@@ -93,8 +84,7 @@ namespace cw3_apbd.Services
                         command.Parameters.AddWithValue("IdEnrollment", idEnrollment);
                         command.Parameters.AddWithValue("IdStudies", idStudies);
                         command.ExecuteNonQuery();
-                        // Проверка, вполне возможно что и не нужна вовсе
-                        // if (command.ExecuteNonQuery() <= 0) new Exception("Z jakiegoś powodu nie było wstawionno do tabeli Enrollment nowe Studia"); // SqlException
+                    
                         dataReader.Close();
                     }
                     else
@@ -116,10 +106,9 @@ namespace cw3_apbd.Services
                     command.Parameters.AddWithValue("LastName", request.LastName);
                     command.Parameters.AddWithValue("BirthDate", Convert.ToDateTime(request.BirthDate));
                     command.Parameters.AddWithValue("IdEnrollment_my", idEnrollment);
-                    // int countRowAffected =
+                    
                     command.ExecuteNonQuery();
-                    // Не нужно
-                    // if (countRowAffected <= 0) throw new Exception(); // SqlException
+                    
                     dataReader.Close();
 
                     command.CommandText = $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
@@ -136,19 +125,16 @@ namespace cw3_apbd.Services
 
                     dataReader.Close();
                     transaction.Commit();
-
-
                 }
                 catch (SqlException sqlExc)
                 {
                     dataReader.Close();
                     transaction.Rollback();
-                    return "SqlException \n " //; 
-                    ///*        
+                    return "SqlException \n " 
                     + "StackTrace " + sqlExc.StackTrace + "\n"
                         + "NumberIdEnrollment " + numberIdEnrollment +
                         " idStudyDlaException " + idStudyDlaException;
-                    // */
+
                 }
                 catch (Exception myExc)
                 {
@@ -157,24 +143,12 @@ namespace cw3_apbd.Services
 
                     return "Exception\n" +
                          myExc.Message;
-                    /* + 
-                        "\nStackTrace\n " + myExc.StackTrace + "\n"
-                        + "NumberIdEnrollment " + numberIdEnrollment +
-                        " idStudyDlaException " + idStudyDlaException; //.ToString();
-                    */
                 }
 
-                // command.CommandText = 
             }
 
 
-            // try{} catch(){} - rollback 
-
-
-
             return responde;
-            // "ObjEnrollment\n" + 
-            // "Semester: 1";
         }
 
         public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request)
@@ -197,89 +171,15 @@ namespace cw3_apbd.Services
                     command.CommandText = $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
                                             " FROM Enrollment WHERE Semester = @Semester AND " +
                                             " IdStudy = (SELECT IdStudy FROM Studies WHERE Name = @Studies );";
-                    /*
-                    $" SELECT IdEnrollment, Semester, IdStudy, StartDate " +
-                          " FROM Enrollment WHERE IdStudy = @IdStudy AND Semester = @Semester ; ";
-                    */
                     command.Parameters.AddWithValue("Studies", request.Studies);
                     command.Parameters.AddWithValue("Semester", request.Semester);
 
 
                     dataReader = command.ExecuteReader();
                     if (!dataReader.Read()) throw new Exception("Nie ma takiego rekordu");
-                    // bEGIN TRANSACTION
-                    dataReader.Close();
-                    ///*
-                    /*
-                    string deleteProcedureIfExist =
-                        " IF( SELECT object_id('promocjaStudentaNaNastepnySemestr') ) IS NOT NULL " +
-                        " BEGIN " +
-                        " DROP PROCEDURE promocjaStudentaNaNastepnySemestr; " +
-                        " END; " +
-                        "  ";
-                    */
-                    // command.CommandText = deleteProcedureIfExist;
-                    // command.ExecuteNonQuery();
-                    // dataReader.Close();
-                    //*/
-                    // Tutaj jest problem 
-                    // dataReader = command.ExecuteReader();
-                    // dataReader.Read();
-
-
-
-                    /*
-                    string createProcedure = 
-                        " CREATE PROCEDURE promocjaStudentaNaNastepnySemestr  @Studies Varchar(20), @Semester INT " +
-                        " AS " + 
-                        " BEGIN " + 
-                        " DECLARE @v_idEnrollment_current_Students INT, " +
-		                " @v_idEnrollment_new_Students INT, " +
-                        " @v_idStudy INT; " +
-
-                        " SET @v_idStudy = (SELECT IdStudy " +
-                                          " FROM Studies " + 
-                                          " WHERE Name = @Studies); " + 
-
-                        " SET @v_idEnrollment_current_Students = " + 
-                                         " (SELECT IdEnrollment--, Semester, IdStudy, StartDate " +
-                                           " FROM Enrollment " +
-                                           " WHERE Semester = @Semester AND " +
-                                                 " IdStudy = @v_idStudy " +
-						                   " ); " +
-                        " SET @v_idEnrollment_new_Students = (SELECT IdEnrollment " +
-                                           " FROM Enrollment " +
-                                           " WHERE Semester > 1 AND " +
-                                                 " IdStudy = @v_idStudy " +
-						" ); " +
                     
-                        " IF(@v_idEnrollment_new_Students IS NULL) " + 
-                        " BEGIN " +
-                        "   SET @v_idEnrollment_new_Students = (SELECT(1 + MAX(IdEnrollment))  FROM Enrollment); " +
-                        "   INSERT INTO Enrollment(IdEnrollment, Semester, IdStudy, StartDate) " +
-                        "   VALUES(@v_idEnrollment_new_Students, (1 + @Semester), @v_idStudy, GETDATE()); " +
-                        " END " +
-                        " ELSE " +
-                        " BEGIN " +
-                        "    UPDATE Enrollment " +
-                        "    SET Semester = (1 + @Semester) " +
-                        "    WHERE IdEnrollment = @v_idEnrollment_new_Students " +
-                        " END; " + 
-
-                        " UPDATE Student " + 
-                        " SET IdEnrollment = @v_idEnrollment_new_Students " + 
-                        " WHERE IdEnrollment = @v_idEnrollment_current_Students; " +
-                        " RETURN @v_idEnrollment_new_Students; " +
-                        " END; " + 
-                        " ";
-                   */
-                    // command.CommandText = createProcedure;
-                    // dataReader = 
-                    //     command.BeginExecuteReader();  
-                    // command.ExecuteScalar();
-                    // dataReader.Close();
-
-
+                    dataReader.Close();
+                 
                     string executeProcedure = $" DECLARE @return_status int;  " +
                                                 " EXEC @return_status = promocjaStudentaNaNastepnySemestr @StudiesName, @CurrentSemester; " +
                                                 " SELECT 'IdEnrollment ' = @return_status; " +
@@ -288,14 +188,10 @@ namespace cw3_apbd.Services
                     command.CommandText = executeProcedure;
                     command.Parameters.AddWithValue("StudiesName", request.Studies);
                     command.Parameters.AddWithValue("CurrentSemester", request.Semester);
-                    /// ExecuteScalar() ?
-                    // dataReader = command.ExecuteReader();
-                    // dataReader.Read();
-                    // string respondeIdEnrollment = command.ExecuteScalar().ToString(); // dataReader.GetValue(0).ToString();
-                    dataReader = command.ExecuteReader(); // Convert.ToInt32(respondeIdEnrollment.Split(" ")[1]);
-                                                          //infoForException = infoForException + "ResultProcedure " + resultProcedure;
+                    dataReader = command.ExecuteReader(); 
+                                                          
 
-                    //int v_IdEnrollment = Convert.ToInt32(resultProcedure.ToString());
+                    
                     dataReader.Read();
                     string result = dataReader.GetValue(0).ToString();
                     int v_IdEnrollment = Convert.ToInt32(result);
@@ -385,6 +281,70 @@ namespace cw3_apbd.Services
                 if (dataReader.Read()) return true;
             }
                 return false;
+        }
+
+        public bool addRefreshToken(string refreshToken)
+        { 
+            try{
+            using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
+            using (SqlCommand sqlCommand = new SqlCommand()) {
+                sqlCommand.Connection = sqlConnection;
+                sqlConnection.Open();
+                sqlCommand.CommandText = "INSERT INTO RefreshToken(id) VALUES(@refreshToken);";
+                sqlCommand.Parameters.AddWithValue("refreshToken", refreshToken);
+
+                    if (sqlCommand.ExecuteNonQuery() == 0) return false;            
+            }
+            }
+            catch (SqlException sqlException) {
+                return false; 
+            }
+            return true;
+        }
+
+        public bool deleteRefreshToken(string refreshToken)
+        {
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
+                using (SqlCommand sqlCommand = new SqlCommand())
+                {
+                    sqlCommand.Connection = sqlConnection;
+                    sqlConnection.Open();
+                    sqlCommand.CommandText = "DELETE FROM RefreshToken WHERE id = @refreshToken;";
+                    sqlCommand.Parameters.AddWithValue("refreshToken", refreshToken);
+
+                    if (sqlCommand.ExecuteNonQuery() == 0) return false;
+                }
+            }
+            catch (SqlException sqlException)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public bool updateRefreshToken(string oldRefreshToken, string newRefreshToken)
+        {
+            try
+            {
+                using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
+                using (SqlCommand sqlCommand = new SqlCommand())
+                {
+                    sqlCommand.Connection = sqlConnection;
+                    sqlConnection.Open();
+                    sqlCommand.CommandText = "UPDATE RefreshToken SET id = @newRefreshToken WHERE id = @oldRefreshToken; ";
+                    sqlCommand.Parameters.AddWithValue("newRefreshToken", newRefreshToken);
+                    sqlCommand.Parameters.AddWithValue("oldRefreshToken", oldRefreshToken);
+
+                    if (sqlCommand.ExecuteNonQuery() == 0) return false;
+                }
+            }
+            catch (SqlException sqlException)
+            {
+                return false;
+            }
+            return true;
         }
     }
 

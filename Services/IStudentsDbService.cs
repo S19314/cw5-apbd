@@ -13,9 +13,14 @@ namespace cw3_apbd.Services
 
         public string promocjaStudentaNaNowySemestr(EnrollSemesterRequest request);
 
-        public Boolean isExistStudies(string indexNumber);
+        public bool isExistStudies(string indexNumber);
 
-        public Boolean isPassedAuthorization(String login, String password);
-        
+        public bool isPassedAuthorization(String login, String password);
+
+        public bool addRefreshToken(string refreshToken);
+
+        public bool deleteRefreshToken(string refreshToken);
+
+        public bool updateRefreshToken(string oldRefreshToken, string newRefreshToken);
     }
 }

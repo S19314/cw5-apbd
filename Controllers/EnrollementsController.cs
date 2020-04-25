@@ -79,7 +79,7 @@ namespace cw3_apbd.Controllers
                 return NotFound("Your username or password is incorrect. Please try again");
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, loginRequestDto.Login),
+                new Claim(ClaimTypes.NameIdentifier, "Klient"), //loginRequestDto.Login),
                 new Claim(ClaimTypes.Role, "employee")
             };
 
@@ -95,9 +95,44 @@ namespace cw3_apbd.Controllers
             );
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token); // Текстовая репрезентация
             var refreshToken = Guid.NewGuid();
+            _dbStudentServices.addRefreshToken(refreshToken.ToString());
             return Ok( new { 
                 accessToken,
                 refreshToken
+            });
+        }
+
+
+        // Лучше всего, реализовать еще триггер, который будет очищать таблицу RefreshToken по истечению определенного времени.
+        [AllowAnonymous]
+        [HttpPost("refresh-token")]
+        public IActionResult RefreshToken(string refreshToken)
+        {
+            string newRefreshToken = Guid.NewGuid().ToString();
+            if (!_dbStudentServices.updateRefreshToken(refreshToken, newRefreshToken)) return Ok("Nie istnieje takiego RefreshTokenu w Bazie Danych");
+            
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "Klient"),
+                new Claim(ClaimTypes.Role, "employee")
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]));
+            var signingCredentails = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken
+            (  // Порядок имеет значаение? Думаю нет
+                issuer: "CORP",
+                audience: "Employee",
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(10),
+                signingCredentials: signingCredentails
+            );
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token); // Текстовая репрезентация
+            
+            return Ok(new
+            {
+                accessToken,
+                newRefreshToken
             });
         }
 

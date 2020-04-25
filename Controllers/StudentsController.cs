@@ -82,20 +82,6 @@ namespace cw3_apbd.Controllers
                 return NotFound("Nie znaleziono studenta");
 
 
-            // HttpContext.Request
-            /*
-                       if (id == 1)
-                       {
-                           return Ok("Kowalski");
-                       }
-                       else if (id == 2)
-                       {
-                           return Ok("Malewski");
-                       }
-           */
-
-
-
         }
 
         /*
