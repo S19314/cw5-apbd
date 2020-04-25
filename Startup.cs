@@ -16,6 +16,10 @@ using Microsoft.AspNetCore.Http;
 using System.IO;
 using System.Text;
 using cw3_apbd.Middlewares;
+using Microsoft.AspNetCore.Authentication;
+using cw3_apbd.Handlers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 namespace cw3_apbd
 {
@@ -31,6 +35,27 @@ namespace cw3_apbd
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer( options => 
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        // ValidAudience = "Students",
+                        ValidAudience = "Employee",
+                        ValidIssuer = "CORP",
+                        ValidateLifetime = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]))
+                    };
+                
+                });
+            /*
+            services.AddAuthentication("AuthenticationBasic")
+                    .AddScheme<AuthenticationSchemeOptions, BasicAuthorizationHandler>
+                    ("AuthenticationBasic", null);
+            */
              services.AddTransient<IStudentsDbService, ServerDbService>();
              services.AddTransient<IDbService, MockDbService>();
             services.AddControllers();
@@ -45,7 +70,11 @@ namespace cw3_apbd
             }
 
             app.UseMiddleware<LoggingMiddleware>();
-
+            
+            
+            /* Проверка на содержания в запросе индекса. Есть подозрение, что один из моих middlwar'ow 
+             * просто не передает Body
+             */ 
 
             app.Use(async (context, next) =>
             {
@@ -73,12 +102,12 @@ namespace cw3_apbd
 
                     return;
                 }
-                // context.Request.Body.Position(0);
+                // context.Request.Body.Position = 0; //(0);
                 await next();
             });
-
+            
             app.UseRouting();
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>

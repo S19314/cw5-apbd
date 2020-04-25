@@ -7,17 +7,25 @@ using cw3_apbd.Services;
 using cw3_apbd.Models;
 using cw3_apbd.DTOs.Request;
 using cw3_apbd.DTOs.Responde;
+using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace cw3_apbd.Controllers
 {
     [Route("api/enrollments")]
+    [Authorize]
     [ApiController]
     public class EnrollementsController : Controller
     {
         private readonly IStudentsDbService _dbStudentServices;
-
-        public EnrollementsController(IStudentsDbService dbService) {
+        private IConfiguration Configuration { get; set; }
+        public EnrollementsController(IStudentsDbService dbService, IConfiguration configuration) {
             _dbStudentServices = dbService;
+            Configuration = configuration;
         }
 
         [HttpPost]
@@ -31,8 +39,9 @@ namespace cw3_apbd.Controllers
 
                 return BadRequest(responde);
         }
-
+        
         [HttpPost("promotions")]
+        [Authorize(Roles = "employee")]
         public IActionResult promocjaStudentaNaNowySemestr(EnrollSemesterRequest request) {
             string responde = _dbStudentServices.promocjaStudentaNaNowySemestr(request);
             
@@ -61,6 +70,36 @@ namespace cw3_apbd.Controllers
             return enrollmentResponde;
         }
 
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        
+        public IActionResult Login(LoginRequestDto loginRequestDto ) {
+            if(!_dbStudentServices.isPassedAuthorization(loginRequestDto.Login, loginRequestDto.Haslo))
+                return NotFound("Your username or password is incorrect. Please try again");
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, loginRequestDto.Login),
+                new Claim(ClaimTypes.Role, "employee")
+            };
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["SecretKey"]));
+            var signingCredentails = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken
+            (  // Порядок имеет значаение? Думаю нет
+                issuer: "CORP",
+                audience : "Employee",
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(10),
+                signingCredentials : signingCredentails
+            );
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token); // Текстовая репрезентация
+            var refreshToken = Guid.NewGuid();
+            return Ok( new { 
+                accessToken,
+                refreshToken
+            });
+        }
 
     }
 }

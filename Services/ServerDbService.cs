@@ -369,6 +369,23 @@ namespace cw3_apbd.Services
 
             }
         }
+
+        public bool isPassedAuthorization(string login, string password)
+        {
+            using (SqlConnection sqlConnection = new SqlConnection(connectParametr))
+            using (SqlCommand sqlCommand = new SqlCommand()) {
+                sqlCommand.Connection = sqlConnection;
+                sqlConnection.Open();
+                String request = $"SELECT IndexNumber FROM Student WHERE IndexNumber = @login AND PASSWORD = @password";
+                sqlCommand.CommandText = request;
+                sqlCommand.Parameters.AddWithValue("login", login);
+                sqlCommand.Parameters.AddWithValue("password", password);
+
+                var dataReader = sqlCommand.ExecuteReader();
+                if (dataReader.Read()) return true;
+            }
+                return false;
+        }
     }
 
     }

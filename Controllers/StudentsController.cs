@@ -53,7 +53,7 @@ namespace cw3_apbd.Controllers
         }
         // Первый способ передачи данных
         [HttpGet("{id}")]
-        public IActionResult GetStudent(int id) {
+        public IActionResult GetStudent(string id){ //int id) {
             ICollection<Student> students = new List<Student>();
 
             using (var connection = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19314;Integrated Security=True "))
@@ -61,7 +61,7 @@ namespace cw3_apbd.Controllers
             {
                 command.Connection = connection;
                 command.CommandText = $"SELECT * FROM Student WHERE student.IndexNumber = @id;";
-                command.Parameters.AddWithValue("id",id);
+                command.Parameters.AddWithValue("id",id); 
                 connection.Open();
                     var dataReader = command.ExecuteReader();
                 while (dataReader.Read()) {
