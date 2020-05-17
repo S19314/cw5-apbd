@@ -20,7 +20,7 @@ using Microsoft.AspNetCore.Authentication;
 using cw3_apbd.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-
+using cw3_apbd.Models_2;
 namespace cw3_apbd
 {
     public class Startup
@@ -58,6 +58,10 @@ namespace cw3_apbd
             */
              services.AddTransient<IStudentsDbService, ServerDbService>();
              services.AddTransient<IDbService, MockDbService>();
+
+             
+            services.AddScoped<IDbServicesCwieczenie10, EfDbServicesCwieczenie10>();
+            services.AddDbContext<s19314Context>();
             services.AddControllers();
         }
 

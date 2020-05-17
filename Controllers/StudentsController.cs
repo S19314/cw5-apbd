@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using cw3_apbd.DAL;
 using cw3_apbd.Models;
 using Microsoft.AspNetCore.Mvc;
+using cw3_apbd.Models_2;
 
 namespace cw3_apbd.Controllers
 {
@@ -23,6 +24,11 @@ namespace cw3_apbd.Controllers
         [HttpGet]
         public IActionResult GetStudents(string orderBy) // action method
         {
+
+
+            return  Ok(new s19314Context().Student.ToList());
+
+            /*
             //s  var s = HttpContext.Request;
             // return $"Jan, Anna, Katarzyna sortowanie={orderBy}";
             //return Ok(_dbService.GetStudents());
@@ -49,11 +55,17 @@ namespace cw3_apbd.Controllers
                 }
             }   
             return Ok(students);
-        
+        */
         }
         // Первый способ передачи данных
         [HttpGet("{id}")]
         public IActionResult GetStudent(string id){ //int id) {
+
+            var student = new s19314Context().Student.Find(id);
+            if (student == null) return  NotFound("Student " + id + " Not Found");
+
+            return Ok(student);
+            /*
             ICollection<Student> students = new List<Student>();
 
             using (var connection = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19314;Integrated Security=True "))
@@ -81,7 +93,7 @@ namespace cw3_apbd.Controllers
             }
                 return NotFound("Nie znaleziono studenta");
 
-
+            */
         }
 
         /*
@@ -92,7 +104,7 @@ namespace cw3_apbd.Controllers
         */
         // 3 способ Передача данных в теле запроса
         [HttpPost]
-        public IActionResult CreateStudent(Student student) {
+        public IActionResult CreateStudent(cw3_apbd.Models.Student student) {
             // добавили в БД
             // ... generating index number
             student.IndexNumber = $"s{new Random().Next(1, 20000)}";
@@ -113,6 +125,21 @@ namespace cw3_apbd.Controllers
         // [Route("api/students/semesters")]
         [HttpGet("{id}/semester")]
         public IActionResult GetStudentSemestr(int id) {
+            var _context = new s19314Context();
+
+            // _context.Student.Join(_context.);    
+
+            var result = from students in _context.Student where students.IndexNumber == ""+id
+                          join enroll in _context.Enrollment
+                          on students.IdEnrollment equals enroll.IdEnrollment
+                          select new {
+                              students.FirstName,
+                              students.IndexNumber,
+                              enroll.Semester,
+                              enroll.StartDate
+                          };
+
+            return Ok(result);
             String info = "";
 
             using (var connection = new SqlConnection("Data Source=db-mssql;Initial Catalog=s19314;Integrated Security=True "))
